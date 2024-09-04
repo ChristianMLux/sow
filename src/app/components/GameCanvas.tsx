@@ -20,18 +20,18 @@ const GameCanvas: React.FC = () => {
       for (let y = 0; y < MAP_HEIGHT; y++) {
         for (let x = 0; x < MAP_WIDTH; x++) {
           const tile = new Graphics();
-          tile.beginFill(Math.random() > 0.7 ? 0x228B22 : 0x8B4513);
-          tile.drawRect(0, 0, TILE_SIZE, TILE_SIZE);
-          tile.endFill();
+          tile.fill(Math.random() > 0.7 ? 0x228B22 : 0x8B4513);
+          tile.rect(0, 0, TILE_SIZE, TILE_SIZE);
+          tile.fill();
           tile.position.set(x * TILE_SIZE, y * TILE_SIZE);
           map.addChild(tile);
         }
       }
 
       const player = new Graphics();
-      player.beginFill(0xFF0000);
-      player.drawCircle(0, 0, TILE_SIZE / 2);
-      player.endFill();
+      player.fill(0xFF0000);
+      player.circle(0, 0, TILE_SIZE / 2);
+      player.fill();
       player.position.set(TILE_SIZE / 2, TILE_SIZE / 2);
       app.stage.addChild(player);
 
