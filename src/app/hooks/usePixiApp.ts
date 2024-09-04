@@ -33,9 +33,7 @@ export const usePixiApp = (canvasRef: React.RefObject<HTMLCanvasElement>, width:
       if (appRef.current) {
         const currentApp = appRef.current;
         setTimeout(() => {
-          if (currentApp && !currentApp.destroy) {
-            currentApp.destroy();
-          }
+          currentApp.destroy();
         }, 0);
         appRef.current = null;
         setApp(null);
