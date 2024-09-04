@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Graphics, Container, Text } from 'pixi.js';
 import { usePixiApp } from '../hooks/usePixiApp';
 import { useGameStore } from '../store/gameStore';
+import CityCanvas from './CityCanvas';
 
 const TILE_SIZE = 32;
 const MAP_WIDTH = 30;
@@ -13,6 +14,8 @@ const GameCanvas: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const app = usePixiApp(canvasRef, MAP_WIDTH * TILE_SIZE, MAP_HEIGHT * TILE_SIZE);
   const { faction, character } = useGameStore(state => ({ faction: state.faction, character: state.character }));
+  const [showCityPrompt, setShowCityPrompt] = useState(false);
+  const [inCity, setInCity] = useState(false);
 
   useEffect(() => {
     if (app && faction && character) {
@@ -87,6 +90,9 @@ const GameCanvas: React.FC = () => {
       player.addChild(namePlate);
 
       const handleKeyDown = (e: KeyboardEvent) => {
+        const oldX = player.x;
+        const oldY = player.y;
+
         switch (e.key) {
           case 'ArrowUp':
             if (player.y > TILE_SIZE / 2) player.y -= TILE_SIZE;
@@ -101,6 +107,16 @@ const GameCanvas: React.FC = () => {
             if (player.x < (MAP_WIDTH - 0.5) * TILE_SIZE) player.x += TILE_SIZE;
             break;
         }
+
+        // Check if player is on the city tile
+        const cityTileX = cityPosition.x * TILE_SIZE + TILE_SIZE / 2;
+        const cityTileY = cityPosition.y * TILE_SIZE + TILE_SIZE / 2;
+
+        if (player.x === cityTileX && player.y === cityTileY) {
+          setShowCityPrompt(true);
+        } else {
+          setShowCityPrompt(false);
+        }
       };
 
       window.addEventListener('keydown', handleKeyDown);
@@ -113,11 +129,43 @@ const GameCanvas: React.FC = () => {
     }
   }, [app, faction, character]);
 
+  const handleEnterCity = () => {
+    setInCity(true);
+    setShowCityPrompt(false);
+  };
+
+  const handleExitCity = () => {
+    setInCity(false);
+  };
+
+  const handleStayOutside = () => {
+    setShowCityPrompt(false);
+  };
+
+  if (inCity) {
+    return <CityCanvas onExit={handleExitCity} />;
+  }
+
   return (
-    <canvas 
-      ref={canvasRef} 
-      style={{ display: 'block', width: '100%', height: 'auto', maxWidth: `${MAP_WIDTH * TILE_SIZE}px` }}
-    />
+    <div className="relative">
+      <canvas 
+        ref={canvasRef} 
+        style={{ display: 'block', width: '100%', height: 'auto', maxWidth: `${MAP_WIDTH * TILE_SIZE}px` }}
+      />
+      {showCityPrompt && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded shadow-lg">
+          <p className="mb-4">You have reached the city. Do you want to enter?</p>
+          <div className="flex justify-between">
+            <button onClick={handleEnterCity} className="bg-blue-500 text-white px-4 py-2 rounded">
+              Enter City
+            </button>
+            <button onClick={handleStayOutside} className="bg-gray-300 text-black px-4 py-2 rounded">
+              Stay Outside
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
