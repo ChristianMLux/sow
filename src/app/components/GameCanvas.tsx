@@ -16,106 +16,118 @@ const GameCanvas: React.FC = () => {
   const { faction, character } = useGameStore(state => ({ faction: state.faction, character: state.character }));
   const [showCityPrompt, setShowCityPrompt] = useState(false);
   const [inCity, setInCity] = useState(false);
+  const mapRef = useRef<Container | null>(null);
+  const playerRef = useRef<Graphics | null>(null);
+
 
   useEffect(() => {
     if (app && faction && character) {
-      const map = new Container();
-      const playerContainer = new Container();
-      app.stage.addChild(map);
-      app.stage.addChild(playerContainer);
+      if (!mapRef.current) {
+        const map = new Container();
+        app.stage.addChild(map);
+        mapRef.current = map;
 
-      // Generate map based on faction
-      for (let y = 0; y < MAP_HEIGHT; y++) {
-        for (let x = 0; x < MAP_WIDTH; x++) {
-          const tile = new Graphics();
-          tile.beginFill(getFactionColor(faction, x, y));
-          tile.drawRect(0, 0, TILE_SIZE, TILE_SIZE);
-          tile.endFill();
-          tile.position.set(x * TILE_SIZE, y * TILE_SIZE);
-          map.addChild(tile);
+        // Generate map based on faction
+        for (let y = 0; y < MAP_HEIGHT; y++) {
+          for (let x = 0; x < MAP_WIDTH; x++) {
+            const tile = new Graphics();
+            tile.beginFill(getFactionColor(faction, x, y));
+            tile.drawRect(0, 0, TILE_SIZE, TILE_SIZE);
+            tile.endFill();
+            tile.position.set(x * TILE_SIZE, y * TILE_SIZE);
+            map.addChild(tile);
 
-          // Add trees and rocks randomly
-          if (Math.random() < 0.1) {
-            const object = new Graphics();
-            if (Math.random() < 0.5) {
-              // Tree
-              object.beginFill(0x228B22);
-              object.drawCircle(TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE / 3);
-            } else {
-              // Rock
-              object.beginFill(0x808080);
-              object.drawRect(TILE_SIZE / 4, TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2);
+            // Add trees and rocks randomly
+            if (Math.random() < 0.1) {
+              const object = new Graphics();
+              if (Math.random() < 0.5) {
+                // Tree
+                object.beginFill(0x228B22);
+                object.drawCircle(TILE_SIZE / 2, TILE_SIZE / 2, TILE_SIZE / 3);
+              } else {
+                // Rock
+                object.beginFill(0x808080);
+                object.drawRect(TILE_SIZE / 4, TILE_SIZE / 4, TILE_SIZE / 2, TILE_SIZE / 2);
+              }
+              object.endFill();
+              object.position.set(x * TILE_SIZE, y * TILE_SIZE);
+              map.addChild(object);
             }
-            object.endFill();
-            object.position.set(x * TILE_SIZE, y * TILE_SIZE);
-            map.addChild(object);
           }
         }
+
+        // Place initial city
+        const cityPosition = getInitialCityPosition(faction);
+        const city = createCityGraphics();
+        city.position.set(cityPosition.x * TILE_SIZE, cityPosition.y * TILE_SIZE);
+        map.addChild(city);
+
+        // Add city name
+        const cityName = new Text('Capital', {
+          fontFamily: 'Arial',
+          fontSize: 10,
+          fill: 0x000000,
+          align: 'center'
+        });
+        cityName.anchor.set(0.5, 1);
+        cityName.position.set(TILE_SIZE / 2, -5);
+        city.addChild(cityName);
       }
 
-      // Place initial city
-      const cityPosition = getInitialCityPosition(faction);
-      const city = createCityGraphics();
-      city.position.set(cityPosition.x * TILE_SIZE, cityPosition.y * TILE_SIZE);
-      map.addChild(city);
+      if (!playerRef.current) {
+        // Add player
+        const player = new Graphics();
+        player.beginFill(0xFF0000);
+        player.drawCircle(0, 0, TILE_SIZE / 2);
+        player.endFill();
+        const cityPosition = getInitialCityPosition(faction);
+        player.position.set(cityPosition.x * TILE_SIZE + TILE_SIZE / 2, cityPosition.y * TILE_SIZE + TILE_SIZE / 2);
+        app.stage.addChild(player);
+        playerRef.current = player;
 
-      // Add city name
-      const cityName = new Text('Capital', {
-        fontFamily: 'Arial',
-        fontSize: 10,
-        fill: 0x000000,
-        align: 'center'
-      });
-      cityName.anchor.set(0.5, 1);
-      cityName.position.set(TILE_SIZE / 2, -5);
-      city.addChild(cityName);
-
-      // Add player
-      const player = new Graphics();
-      player.beginFill(0xFF0000);
-      player.drawCircle(0, 0, TILE_SIZE / 2);
-      player.endFill();
-      player.position.set(cityPosition.x * TILE_SIZE + TILE_SIZE / 2, cityPosition.y * TILE_SIZE + TILE_SIZE / 2);
-      playerContainer.addChild(player);
-
-      // Add name plate
-      const namePlate = new Text(character.name, {
-        fontFamily: 'Arial',
-        fontSize: 12,
-        fill: 0xFFFFFF,
-        align: 'center'
-      });
-      namePlate.anchor.set(0.5, 1);
-      namePlate.position.set(0, -TILE_SIZE / 2);
-      player.addChild(namePlate);
+        // Add name plate
+        const namePlate = new Text(character.name, {
+          fontFamily: 'Arial',
+          fontSize: 12,
+          fill: 0xFFFFFF,
+          align: 'center'
+        });
+        namePlate.anchor.set(0.5, 1);
+        namePlate.position.set(0, -TILE_SIZE / 2);
+        player.addChild(namePlate);
+      }
 
       const handleKeyDown = (e: KeyboardEvent) => {
-        const oldX = player.x;
-        const oldY = player.y;
+        if (playerRef.current && !inCity) {
+          const player = playerRef.current;
+          const oldX = player.x;
+          const oldY = player.y;
 
-        switch (e.key) {
-          case 'ArrowUp':
-            if (player.y > TILE_SIZE / 2) player.y -= TILE_SIZE;
-            break;
-          case 'ArrowDown':
-            if (player.y < (MAP_HEIGHT - 0.5) * TILE_SIZE) player.y += TILE_SIZE;
-            break;
-          case 'ArrowLeft':
-            if (player.x > TILE_SIZE / 2) player.x -= TILE_SIZE;
-            break;
-          case 'ArrowRight':
-            if (player.x < (MAP_WIDTH - 0.5) * TILE_SIZE) player.x += TILE_SIZE;
-            break;
-        }
+          switch (e.key) {
+            case 'ArrowUp':
+              if (player.y > TILE_SIZE / 2) player.y -= TILE_SIZE;
+              break;
+            case 'ArrowDown':
+              if (player.y < (MAP_HEIGHT - 0.5) * TILE_SIZE) player.y += TILE_SIZE;
+              break;
+            case 'ArrowLeft':
+              if (player.x > TILE_SIZE / 2) player.x -= TILE_SIZE;
+              break;
+            case 'ArrowRight':
+              if (player.x < (MAP_WIDTH - 0.5) * TILE_SIZE) player.x += TILE_SIZE;
+              break;
+          }
 
-        // Check if player is on the city tile
-        const cityTileX = cityPosition.x * TILE_SIZE + TILE_SIZE / 2;
-        const cityTileY = cityPosition.y * TILE_SIZE + TILE_SIZE / 2;
+          // Check if player is on the city tile
+          const cityPosition = getInitialCityPosition(faction);
+          const cityTileX = cityPosition.x * TILE_SIZE + TILE_SIZE / 2;
+          const cityTileY = cityPosition.y * TILE_SIZE + TILE_SIZE / 2;
 
-        if (player.x === cityTileX && player.y === cityTileY) {
-          setShowCityPrompt(true);
-        } else {
-          setShowCityPrompt(false);
+          if (player.x === cityTileX && player.y === cityTileY) {
+            setShowCityPrompt(true);
+          } else {
+            setShowCityPrompt(false);
+          }
         }
       };
 
@@ -123,34 +135,38 @@ const GameCanvas: React.FC = () => {
 
       return () => {
         window.removeEventListener('keydown', handleKeyDown);
-        map.destroy({ children: true });
-        playerContainer.destroy({ children: true });
       };
     }
-  }, [app, faction, character]);
+  }, [app, faction, character, inCity]);
 
   const handleEnterCity = () => {
     setInCity(true);
     setShowCityPrompt(false);
+    if (app) app.stage.visible = false;
   };
 
   const handleExitCity = () => {
     setInCity(false);
+    if (app) app.stage.visible = true;
   };
 
   const handleStayOutside = () => {
     setShowCityPrompt(false);
   };
 
-  if (inCity) {
-    return <CityCanvas onExit={handleExitCity} />;
-  }
-
   return (
     <div className="relative">
       <canvas 
         ref={canvasRef} 
-        style={{ display: 'block', width: '100%', height: 'auto', maxWidth: `${MAP_WIDTH * TILE_SIZE}px` }}
+        style={{ 
+          display: 'block', 
+          width: '100%', 
+          height: inCity ? '0' : 'auto', 
+          maxWidth: `${MAP_WIDTH * TILE_SIZE}px`,
+          maxHeight: inCity ? '0' : `${MAP_HEIGHT * TILE_SIZE}px`,
+          visibility: inCity ? 'hidden' : 'visible',
+          overflow: 'hidden'
+        }}
       />
       {showCityPrompt && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-4 rounded shadow-lg">
@@ -165,6 +181,7 @@ const GameCanvas: React.FC = () => {
           </div>
         </div>
       )}
+      {inCity && <CityCanvas onExit={handleExitCity} />}
     </div>
   );
 };
