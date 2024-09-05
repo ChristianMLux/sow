@@ -1,5 +1,5 @@
 // src/models/buildings.ts
-import { Graphics } from 'pixi.js';
+import { Graphics, Sprite, Texture } from 'pixi.js';
 export interface BuildingCost {
     wood: number;
     stone: number;
@@ -25,7 +25,7 @@ export interface BuildingCost {
     abstract get upgradeTime(): number;
   
     abstract produce(): void;
-    abstract getGraphics(): Graphics;
+    abstract getGraphics(): Graphics | Sprite;
   
     upgrade(): void {
       this.level++;
@@ -131,12 +131,12 @@ export interface BuildingCost {
     produce(): void {
       // Town Hall doesn't produce resources
     }
-    getGraphics(): Graphics {
-        const graphics = new Graphics();
-        graphics.beginFill(0x808080); // Gray color for Town Hall
-        graphics.drawRect(0, 0, TILE_SIZE * 2, TILE_SIZE * 2); // Larger size for Town Hall
-        graphics.endFill();
-        return graphics;
+    getGraphics(): Sprite {
+        const texture = Texture.from('/assets/townhall_1_transparent.png');
+        const sprite = new Sprite(texture);
+        sprite.width = TILE_SIZE * 8;  // Adjust size as needed
+        sprite.height = TILE_SIZE * 8; // Adjust size as needed
+        return sprite;
       }
   }
  

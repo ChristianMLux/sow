@@ -1,7 +1,7 @@
 // src/components/CityCanvas.tsx
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Application, Container, Graphics } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Texture, Assets  } from 'pixi.js';
 import { usePixiApp } from '../hooks/usePixiApp';
 import { useGameStore } from '../store/gameStore';
 import { Building, Woodcutter, Barracks, Hospital, TownHall } from '../models/buildings';
@@ -15,6 +15,7 @@ const CityCanvas: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const app = usePixiApp(canvasRef, CITY_SIZE * TILE_SIZE, CITY_SIZE * TILE_SIZE);
   const [cityContainer, setCityContainer] = useState<Container | null>(null);
+  const [assetsLoaded, setAssetsLoaded] = useState(false);
 
   const { 
     faction, 
@@ -37,6 +38,15 @@ const CityCanvas: React.FC<{ onExit: () => void }> = ({ onExit }) => {
   const [selectedExistingBuilding, setSelectedExistingBuilding] = useState<Building | null>(null);
 
   useEffect(() => {
+    const loadAssets = async () => {
+      await Assets.load('/assets/townhall_1_transparent.png');
+      setAssetsLoaded(true);
+    };
+
+    loadAssets();
+  }, []);
+
+  useEffect(() => {
     if (app && faction) {
       const container = new Container();
       app.stage.addChild(container);
@@ -56,7 +66,7 @@ const CityCanvas: React.FC<{ onExit: () => void }> = ({ onExit }) => {
 
       // Add TownHall if it doesn't exist
       if (!buildings.some(building => building instanceof TownHall)) {
-        const townHall = new TownHall(CITY_SIZE / 2, CITY_SIZE / 2, faction);
+        const townHall = new TownHall(CITY_SIZE / 2 - 2, CITY_SIZE / 2 - 2, faction);
         addBuilding(townHall);
       }
 
@@ -65,7 +75,7 @@ const CityCanvas: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         container.destroy({ children: true });
       };
     }
-  }, [app, faction]);
+  }, [app, faction, assetsLoaded]);
 
   useEffect(() => {
     if (cityContainer) {
@@ -84,18 +94,18 @@ const CityCanvas: React.FC<{ onExit: () => void }> = ({ onExit }) => {
         }
       }
 
-      // Draw buildings
-      buildings.forEach(building => {
-        const buildingGraphics = building.getGraphics();
-        buildingGraphics.position.set(building.position.x * TILE_SIZE, building.position.y * TILE_SIZE);
-        buildingGraphics.eventMode = 'static';
-        buildingGraphics.on('pointerdown', () => {
-          setSelectedExistingBuilding(building);
-        });
-        cityContainer.addChild(buildingGraphics);
-      });
-    }
-  }, [buildings, cityContainer, faction]);
+        // Draw buildings
+        buildings.forEach(building => {
+            const buildingGraphics = building.getGraphics();
+            buildingGraphics.position.set(building.position.x * TILE_SIZE, building.position.y * TILE_SIZE);
+            buildingGraphics.eventMode = 'static';
+            buildingGraphics.on('pointerdown', () => {
+              setSelectedExistingBuilding(building);
+            });
+            cityContainer.addChild(buildingGraphics);
+          });
+        }
+      }, [buildings, cityContainer, faction]);
 
   const handleBuildBuilding = (buildingType: BuildingType) => {
     if (!faction) return;
